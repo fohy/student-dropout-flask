@@ -47,7 +47,7 @@ main {
 
 footer {
     text-align: center;
-    padding: 1.5rem;
+    padding: 1.5 {{- end -}}rem;
     background: #2c3e50;
     color: white;
     margin-top: 2rem;
@@ -243,11 +243,11 @@ footer {
 }
 
 .team-members {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    display: flex;
+    flex-wrap: wrap;
     gap: 2rem;
     margin: 3rem 0;
-    justify-items: center;
+    justify-content: center;
 }
 
 .member-card {
@@ -262,12 +262,10 @@ footer {
 .member-photo {
     width: 150px;
     height: 150px;
-    background: #ecf0f1;
     border-radius: 50%;
     margin: 0 auto 1rem;
-    background-size: contain;
-    background-position: center;
-    background-repeat: no-repeat;
+    object-fit: contain;
+    background-color: #ecf0f1;
 }
 
 .position {
