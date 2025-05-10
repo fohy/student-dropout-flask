@@ -45,78 +45,82 @@ def team():
 def predict():
     logger.debug(f"Получен запрос: {request.method} /predict")
     if request.method == 'POST':
-        logger.debug("Обработка POST-запроса")
-        education_level = request.form.get('education_level')
-        logger.debug(f"Параметры формы: education_level={education_level}")
-
-        if 'file' not in request.files or request.files['file'].filename == '':
-            logger.warning("Файл не выбран")
-            return render_template('prediction.html', 
-                                   error="Пожалуйста, выберите CSV-файл",
-                                   show_results=False,
-                                   feature_columns=FEATURE_COLUMNS)
-        
-        file = request.files['file']
-        logger.debug(f"Загружен файл: {file.filename}")
         try:
-            data = pd.read_csv(file, sep=';')
-            logger.debug(f"Прочитан CSV-файл, столбцы: {list(data.columns)}")
+            # Проверка файла
+            if 'file' not in request.files:
+                return render_template('prediction.html', 
+                                    error="Файл не загружен",
+                                    show_results=False,
+                                    feature_columns=FEATURE_COLUMNS)
             
-          
+            file = request.files['file']
+            if file.filename == '':
+                return render_template('prediction.html', 
+                                    error="Файл не выбран",
+                                    show_results=False,
+                                    feature_columns=FEATURE_COLUMNS)
+
+            # Чтение CSV
+            data = pd.read_csv(file, sep=';')
+            
+            # Проверка колонок
             missing_cols = [col for col in FEATURE_COLUMNS if col not in data.columns]
             if missing_cols:
-                logger.error(f"Отсутствуют столбцы: {missing_cols}")
                 return render_template('prediction.html',
-                                       error=f"CSV-файл не содержит необходимые столбцы: {missing_cols}",
-                                       show_results=False,
-                                       feature_columns=FEATURE_COLUMNS)
-            
-            
+                                    error=f"Отсутствуют колонки: {missing_cols}",
+                                    show_results=False,
+                                    feature_columns=FEATURE_COLUMNS)
+
+            # Подготовка запроса к FastAPI
             request_data = {
-                'education_level': education_level,
-                'data': data[FEATURE_COLUMNS].to_dict(orient='records')
+                "education_level": request.form.get('education_level', 'bak_spec'),
+                "data": data[FEATURE_COLUMNS].to_dict(orient='records')
             }
+
+            # Отправка запроса к FastAPI
+            response = requests.post(
+                f"{MODEL_SERVER_URL}/predict",
+                json=request_data,
+                headers={'Content-Type': 'application/json'},
+                timeout=30
+            )
+
+            # Проверка ответа
+            response.raise_for_status()  # Проверка HTTP ошибок
+            result = response.json()
             
-         
-            response = requests.post(MODEL_SERVER_URL, json=request_data)
-            if response.status_code != 200:
-                logger.error(f"Ошибка от сервера модели: {response.json()['detail']}")
-                return render_template('prediction.html',
-                                       error=f"Ошибка от сервера модели: {response.json()['detail']}",
-                                       show_results=False,
-                                       feature_columns=FEATURE_COLUMNS)
+            # Обработка результатов
+            data['prediction'] = result['predictions']
+            result_csv = data.to_csv(index=False, sep=';')
             
-            predictions = response.json()['predictions']
-            logger.debug(f"Получены предсказания, длина: {len(predictions)}")
-            
-            
-            data['prediction'] = predictions
-            
-            
-            result_html = data.to_html(classes='table table-striped', index=False, float_format='%.2f')
-            
-           
-            result_csv = data.to_csv(index=False, sep=';', float_format='%.2f')
+            # Сохранение результатов
             with open('results.csv', 'w', encoding='utf-8') as f:
                 f.write(result_csv)
+                
+            return render_template('prediction.html',
+                                result_html=data.to_html(classes='table table-striped', index=False),
+                                show_results=True,
+                                error=None,
+                                feature_columns=FEATURE_COLUMNS)
+
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Ошибка запроса к FastAPI: {str(e)}")
+            return render_template('prediction.html',
+                                error=f"Ошибка соединения с сервером модели: {str(e)}",
+                                show_results=False,
+                                feature_columns=FEATURE_COLUMNS)
             
-            return render_template('prediction.html',
-                                   result_html=result_html,
-                                   show_results=True,
-                                   error=None,
-                                   feature_columns=FEATURE_COLUMNS)
-        
         except Exception as e:
-            logger.error(f"Ошибка обработки файла: {str(e)}")
+            logger.error(f"Ошибка обработки: {str(e)}", exc_info=True)
             return render_template('prediction.html',
-                                   error=f"Ошибка обработки файла: {str(e)}",
-                                   show_results=False,
-                                   feature_columns=FEATURE_COLUMNS)
-    
+                                error=f"Ошибка обработки: {str(e)}",
+                                show_results=False,
+                                feature_columns=FEATURE_COLUMNS)
+
     return render_template('prediction.html', 
-                           show_results=False, 
-                           error=None, 
-                           feature_columns=FEATURE_COLUMNS)
+                         show_results=False, 
+                         error=None, 
+                         feature_columns=FEATURE_COLUMNS)
 
 @app.route('/download_results')
 def download_results():
