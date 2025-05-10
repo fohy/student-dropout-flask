@@ -46,7 +46,6 @@ def predict():
     logger.debug(f"Получен запрос: {request.method} /predict")
     if request.method == 'POST':
         try:
-            # Проверка файла
             if 'file' not in request.files:
                 return render_template('prediction.html', 
                                     error="Файл не загружен",
@@ -60,10 +59,8 @@ def predict():
                                     show_results=False,
                                     feature_columns=FEATURE_COLUMNS)
 
-            # Чтение CSV
             data = pd.read_csv(file, sep=';')
             
-            # Проверка колонок
             missing_cols = [col for col in FEATURE_COLUMNS if col not in data.columns]
             if missing_cols:
                 return render_template('prediction.html',
@@ -71,13 +68,11 @@ def predict():
                                     show_results=False,
                                     feature_columns=FEATURE_COLUMNS)
 
-            # Подготовка запроса к FastAPI
             request_data = {
                 "education_level": request.form.get('education_level', 'bak_spec'),
                 "data": data[FEATURE_COLUMNS].to_dict(orient='records')
             }
 
-            # Отправка запроса к FastAPI
             response = requests.post(
                 f"{MODEL_SERVER_URL}/predict",
                 json=request_data,
@@ -85,15 +80,12 @@ def predict():
                 timeout=30
             )
 
-            # Проверка ответа
-            response.raise_for_status()  # Проверка HTTP ошибок
+            response.raise_for_status() 
             result = response.json()
             
-            # Обработка результатов
             data['prediction'] = result['predictions']
             result_csv = data.to_csv(index=False, sep=';')
             
-            # Сохранение результатов
             with open('results.csv', 'w', encoding='utf-8') as f:
                 f.write(result_csv)
                 
