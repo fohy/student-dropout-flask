@@ -265,6 +265,9 @@ footer {
     background: #ecf0f1;
     border-radius: 50%;
     margin: 0 auto 1rem;
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
 }
 
 .position {
