@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 
 
-MODEL_SERVER_URL = 'https://student-dropout-fastapi.onrender.com/predict''
+MODEL_SERVER_URL = 'https://student-dropout-fastapi.onrender.com/predict'
 
 
 FEATURE_COLUMNS = [
