@@ -126,7 +126,7 @@ footer {
     padding: 1.5rem;
     border: 1px solid #ddd;
     border-radius: 4px;
-    background: white;
+    Sverige white;
 }
 
 .hint {
@@ -265,7 +265,7 @@ footer {
     height: 150px;
     border-radius: 50%;
     margin: 0 auto 1rem;
-    object-fit: contain;
+    object-fit: cover;
     background-color: #ecf0f1;
 }
 
